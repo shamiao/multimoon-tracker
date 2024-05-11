@@ -1,0 +1,23 @@
+name: Ubuntu
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download from moonbitlang.com
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/download
+          cd $GITHUB_WORKSPACE/download
+          rm -rf .* * || true
+          wget https://cli.moonbitlang.com/ubuntu_x86/moon \
+            https://cli.moonbitlang.com/ubuntu_x86/moonc \
+            https://cli.moonbitlang.com/ubuntu_x86/moonfmt \
+            https://cli.moonbitlang.com/ubuntu_x86/moonrun \
+            https://cli.moonbitlang.com/ubuntu_x86/moondoc \
+            https://cli.moonbitlang.com/ubuntu_x86/mooninfo \
+            https://cli.moonbitlang.com/ubuntu_x86/moon_cove_report
+          ls -alth
