@@ -1,0 +1,11 @@
+name: Windows (x64)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
