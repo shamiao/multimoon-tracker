@@ -1,0 +1,25 @@
+name: MacOS (aarch64)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: macos-latest-xlarge
+
+    steps:
+      - name: Download from moonbitlang.com
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/download
+          cd $GITHUB_WORKSPACE/download
+          rm -rf .* * || true
+          wget https://cli.moonbitlang.com/macos_m1/moon \
+            https://cli.moonbitlang.com/macos_m1/moonc \
+            https://cli.moonbitlang.com/macos_m1/moonfmt \
+            https://cli.moonbitlang.com/macos_m1/moonrun \
+            https://cli.moonbitlang.com/macos_m1/moondoc \
+            https://cli.moonbitlang.com/macos_m1/mooninfo \
+            https://cli.moonbitlang.com/macos_m1/moon_cove_report
+          ls -alth
+          chmod +x ./moon && ./moon -v
+          chmod +x ./moonc && ./moonc -v
