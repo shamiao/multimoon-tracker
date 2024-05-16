@@ -33,14 +33,15 @@ async function main() {
 
     // extract moon & moonc executable and run `moon version`
     const moon_version = await (async () => {
-        const tempdirname = crypto.randomBytes(8).toString('hex');
-        const moon_exec_path = path.join('temp', tempdirname, moon_executable[0])
+        const tempdir = path.join('temp', crypto.randomBytes(8).toString('hex'));
+        await fs.mkdir(tempdir, { recursive: true });
+        const moon_exec_path = path.join(tempdir, moon_executable[0])
         {
             await fs.writeFile(moon_exec_path, moon_executable[1]);
             await fs.chmod(moon_exec_path, 0o777);
         }
         {
-            const moonc_exec_path = path.join('temp', tempdirname, moonc_executable[0])
+            const moonc_exec_path = path.join(tempdir, moonc_executable[0])
             await fs.writeFile(moonc_exec_path, moonc_executable[1]);
             await fs.chmod(moonc_exec_path, 0o777);
         }
