@@ -1,0 +1,24 @@
+{
+  "name": "multimoon-tracker",
+  "version": "0.1.0",
+  "description": "Track new version of MoonBit language toolchain.",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "build": "tsc"
+  },
+  "author": "Lone Outpost Tech (Dalian) Co., Ltd. <oss@loneoutpost.cn>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "tmp": "^0.2.3",
+    "ts-proto": "^1.176.0"
+  },
+  "devDependencies": {
+    "@types/tmp": "^0.2.6",
+    "@tsconfig/node16": "^16.1.3",
+    "nodemon": "^3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

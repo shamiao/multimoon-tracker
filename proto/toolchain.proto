@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package multimoon;
+
+message File {
+    string filename = 1;
+    string downloadfrom = 2;
+    string checksum = 3;
+    bytes upload_content = 4;
+}
+
+message Toolchain {
+    string name = 1;
+    string installer = 2;
+    int64 last_modified = 3;
+    repeated File bin = 4;
+    repeated File core = 5;
+}

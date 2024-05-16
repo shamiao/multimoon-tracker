@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package multimoon;
+
+import "toolchain.proto";
+
+message CheckUpdateReq {
+    string arch = 1;
+    string name = 2;
+}
+
+message CheckUpdateRep {
+    bool should_update = 1;
+}
+
+message UpdateReq {
+    string arch = 1;
+    string name = 2;
+    Toolchain toolchain = 3;
+}
+
+message UpdateRep {
+}
