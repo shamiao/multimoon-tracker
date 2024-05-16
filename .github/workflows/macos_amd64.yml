@@ -4,23 +4,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  download:
+  tracker-main:
     runs-on: macos-latest
 
     steps:
-      - name: Download from moonbitlang.com
+      - uses: actions/checkout@v2
+        with:
+          path: prj
+
+      - name: Build npm project
+        working-directory: ./prj
         run: |
-          mkdir -p $GITHUB_WORKSPACE/download
-          cd $GITHUB_WORKSPACE/download
-          rm -rf .* * || true
-          wget https://cli.moonbitlang.com/macos_intel/moon \
-            https://cli.moonbitlang.com/macos_intel/moonc \
-            https://cli.moonbitlang.com/macos_intel/moonfmt \
-            https://cli.moonbitlang.com/macos_intel/moonrun \
-            https://cli.moonbitlang.com/macos_intel/moondoc \
-            https://cli.moonbitlang.com/macos_intel/mooninfo \
-            https://cli.moonbitlang.com/macos_intel/moon_cove_report
-          ls -alth
-          file moon
-          chmod +x ./moon && ./moon version
-          chmod +x ./moonc && ./moonc -v
+          npm ci
+          npm run build
+      
+      - name: Run npm project
+        working-directory: ./prj
+        env:
+          MULTIMOON_ARCH: macos_amd64
+        run: |
+          node dist/index.js
