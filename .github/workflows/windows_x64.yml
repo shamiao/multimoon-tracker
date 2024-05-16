@@ -9,3 +9,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          path: prj
+
+      - name: Build npm project
+        run: |
+          cd prj
+          npm ci
+          npm run build
+      
+      - name: Run npm project
+        run: |
+          node dist/index.js
