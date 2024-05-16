@@ -45,7 +45,7 @@ export function upstream_executable_url(arch: string, exec: string): string {
 }
 
 export function upstream_core_url(): string {
-    return 'https://cli.moonbitlang.com/lib/core.zip'
+    return 'https://cli.moonbitlang.com/core.zip'
 }
 
 export function moon_executable_name(arch: string): string {
@@ -58,4 +58,12 @@ export function moon_executable_name(arch: string): string {
             return 'moon.exe';
         default: exit(`arch ${arch} unsupported`);
     }
+}
+
+export function registry_check_update_url(): string {
+    return 'http://multimoon.lopt.dev/update/check'
+}
+
+export function registry_update_url(): string {
+    return 'http://multimoon.lopt.dev/update'
 }
