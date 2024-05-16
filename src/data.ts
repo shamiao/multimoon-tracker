@@ -60,6 +60,18 @@ export function moon_executable_name(arch: string): string {
     }
 }
 
+export function moonc_executable_name(arch: string): string {
+    switch (arch) {
+        case 'macos_aarch64':
+        case 'macos_amd64':
+        case 'ubuntu_amd64':
+            return 'moonc';
+        case 'windows_x64':
+            return 'moonc.exe';
+        default: exit(`arch ${arch} unsupported`);
+    }
+}
+
 export function registry_check_update_url(): string {
     return 'http://multimoon.lopt.dev/update/check'
 }

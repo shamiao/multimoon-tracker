@@ -1,7 +1,7 @@
 import * as process from 'node:process';
 import * as crypto from 'node:crypto';
 import { download, exit } from './common';
-import { moon_executable_name, registry_check_update_url, registry_update_url, upstream_core_url, upstream_executable_url, upstream_executables, upstream_script_checksum, upstream_script_url } from './data';
+import { moon_executable_name, moonc_executable_name, registry_check_update_url, registry_update_url, upstream_core_url, upstream_executable_url, upstream_executables, upstream_script_checksum, upstream_script_url } from './data';
 import * as tmp from 'tmp';
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -26,15 +26,25 @@ async function main() {
         }
     }
 
-    // download moon executable only
+    // download moon & moonc executable only
+    // NOTE: existance of `moonc` is mandatory for `moon version`
     const moon_executable = await download(moon_executable_name(arch), upstream_executable_url(arch, moon_executable_name(arch)))
+    const moonc_executable = await download(moonc_executable_name(arch), upstream_executable_url(arch, moonc_executable_name(arch)))
 
-    // extract `moon` executable and run `moon version`
+    // extract moon & moonc executable and run `moon version`
     const moon_version = await (async () => {
-        const tempfile = path.join('temp', moon_executable[0])
-        await fs.writeFile(tempfile, moon_executable[1]);
-        await fs.chmod(tempfile, 0o777);
-        const exec_output = await promisify(child_process.execFile)(tempfile, ['version']);
+        const tempdirname = crypto.randomBytes(8).toString('hex');
+        const moon_exec_path = path.join('temp', tempdirname, moon_executable[0])
+        {
+            await fs.writeFile(moon_exec_path, moon_executable[1]);
+            await fs.chmod(moon_exec_path, 0o777);
+        }
+        {
+            const moonc_exec_path = path.join('temp', tempdirname, moonc_executable[0])
+            await fs.writeFile(moonc_exec_path, moonc_executable[1]);
+            await fs.chmod(moonc_exec_path, 0o777);
+        }
+        const exec_output = await promisify(child_process.execFile)(moon_exec_path, ['version']);
         const moon_version_exec = exec_output.stdout.split('\n')[0];
         console.log(`exec moon version: ${moon_version_exec}`);
         const match = (/^moon (\d+\.\d+\.\d+)\s*\([0-9a-f]+\s+\d{4}-\d{1,2}-\d{1,2}\)$/g).exec(moon_version_exec);
@@ -74,12 +84,15 @@ async function main() {
     // download other executables and core
     const downloaded_files = await (async () => {
         const download_file_urls = upstream_executables(arch)
-            .filter((filename) => filename != moon_executable_name(arch))
+            .filter((filename) => {
+                return filename != moon_executable_name(arch) && filename != moonc_executable_name(arch)
+            })
             .map((exec) => [exec, upstream_executable_url(arch, exec)] as [string, string]);
         download_file_urls.push(['core.zip', upstream_core_url()])
         const download_tasks = download_file_urls.map(([filename, url]) => download(filename, url));
         const downloaded_files = await Promise.all(download_tasks);
         downloaded_files.push(moon_executable);
+        downloaded_files.push(moonc_executable);
         return new Map(downloaded_files);
     })();
     
