@@ -13,7 +13,6 @@
   "dependencies": {
     "node-liblzma": "^1.1.9",
     "p-retry": "^4.6.2",
-    "tmp": "^0.2.3",
     "ts-proto": "^1.176.0"
   },
   "devDependencies": {

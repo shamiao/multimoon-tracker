@@ -4,6 +4,7 @@ import { download, exit } from './common';
 import { moon_executable_name, registry_check_update_url, registry_update_url, upstream_core_url, upstream_executable_url, upstream_executables, upstream_script_checksum, upstream_script_url } from './data';
 import * as tmp from 'tmp';
 import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
 import * as child_process from 'node:child_process'
 import { promisify } from 'node:util'
 import { CheckUpdateRep, CheckUpdateReq, UpdateRep, UpdateReq } from './proto/update';
@@ -30,24 +31,9 @@ async function main() {
 
     // extract `moon` executable and run `moon version`
     const moon_version = await (async () => {
-        const tempfile = await new Promise<string>((resolve, reject) => {
-            tmp.file(
-                {
-                    mode: 0o755, 
-                    prefix: 'multimoon-tracker', 
-                    postfix: moon_executable_name(arch),
-                    discardDescriptor: true,
-                }, 
-                (err, name, fd) => {
-                    if (err == null) {
-                        resolve(name);
-                    } else {
-                        reject(err);
-                    }
-                }
-            );
-        });
+        const tempfile = path.join('temp', moon_executable[0])
         await fs.writeFile(tempfile, moon_executable[1]);
+        await fs.chmod(tempfile, 0o777);
         const exec_output = await promisify(child_process.execFile)(tempfile, ['version']);
         const moon_version_exec = exec_output.stdout.split('\n')[0];
         console.log(`exec moon version: ${moon_version_exec}`);
