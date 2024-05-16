@@ -45,7 +45,9 @@ async function main() {
             await fs.writeFile(moonc_exec_path, moonc_executable[1]);
             await fs.chmod(moonc_exec_path, 0o777);
         }
-        const exec_output = await promisify(child_process.execFile)(moon_exec_path, ['version']);
+        const exec_output = await promisify(child_process.execFile)(moon_exec_path, ['version'], {
+            env: { "PATH": tempdir }
+        });
         const moon_version_exec = exec_output.stdout.split('\n')[0];
         console.log(`exec moon version: ${moon_version_exec}`);
         const match = (/^moon (\d+\.\d+\.\d+)\s*\([0-9a-f]+\s+\d{4}-\d{1,2}-\d{1,2}\)$/g).exec(moon_version_exec);
