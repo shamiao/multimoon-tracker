@@ -15,7 +15,6 @@ jobs:
       - name: Build npm project
         working-directory: ./prj
         run: |
-          cd prj
           npm ci
           npm run build
       
