@@ -23,6 +23,7 @@ export interface Toolchain {
   lastModified: number;
   bin: File[];
   core: File[];
+  moonver: string;
 }
 
 function createBaseFile(): File {
@@ -130,7 +131,7 @@ export const File = {
 };
 
 function createBaseToolchain(): Toolchain {
-  return { name: "", installer: "", lastModified: 0, bin: [], core: [] };
+  return { name: "", installer: "", lastModified: 0, bin: [], core: [], moonver: "" };
 }
 
 export const Toolchain = {
@@ -149,6 +150,9 @@ export const Toolchain = {
     }
     for (const v of message.core) {
       File.encode(v!, writer.uint32(42).fork()).ldelim();
+    }
+    if (message.moonver !== "") {
+      writer.uint32(50).string(message.moonver);
     }
     return writer;
   },
@@ -195,6 +199,13 @@ export const Toolchain = {
 
           message.core.push(File.decode(reader, reader.uint32()));
           continue;
+        case 6:
+          if (tag !== 50) {
+            break;
+          }
+
+          message.moonver = reader.string();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -211,6 +222,7 @@ export const Toolchain = {
       lastModified: isSet(object.lastModified) ? globalThis.Number(object.lastModified) : 0,
       bin: globalThis.Array.isArray(object?.bin) ? object.bin.map((e: any) => File.fromJSON(e)) : [],
       core: globalThis.Array.isArray(object?.core) ? object.core.map((e: any) => File.fromJSON(e)) : [],
+      moonver: isSet(object.moonver) ? globalThis.String(object.moonver) : "",
     };
   },
 
@@ -231,6 +243,9 @@ export const Toolchain = {
     if (message.core?.length) {
       obj.core = message.core.map((e) => File.toJSON(e));
     }
+    if (message.moonver !== "") {
+      obj.moonver = message.moonver;
+    }
     return obj;
   },
 
@@ -244,6 +259,7 @@ export const Toolchain = {
     message.lastModified = object.lastModified ?? 0;
     message.bin = object.bin?.map((e) => File.fromPartial(e)) || [];
     message.core = object.core?.map((e) => File.fromPartial(e)) || [];
+    message.moonver = object.moonver ?? "";
     return message;
   },
 };

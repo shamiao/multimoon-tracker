@@ -32,7 +32,7 @@ async function main() {
     const moonc_executable = await download(moonc_executable_name(arch), upstream_executable_url(arch, moonc_executable_name(arch)))
 
     // extract moon & moonc executable and run `moon version`
-    const moon_version = await (async () => {
+    const [moon_version_exec, toolchain_version] = await (async () => {
         const tempdir = path.join('temp', crypto.randomBytes(8).toString('hex'));
         await fs.mkdir(tempdir, { recursive: true });
         const moon_exec_path = path.join(tempdir, moon_executable[0])
@@ -49,22 +49,22 @@ async function main() {
             env: { "PATH": tempdir }
         });
         const moon_version_exec = exec_output.stdout.split('\n')[0];
-        console.log(`exec moon version: ${moon_version_exec}`);
+        console.log(`moon version: ${moon_version_exec}`);
         const match = (/^moon (\d+\.\d+\.\d+)\s*\([0-9a-f]+\s+\d{4}-\d{1,2}-\d{1,2}\)$/g).exec(moon_version_exec);
         if (match != null) {
-            return match[1]
+            return [moon_version_exec, match[1]]
         } else {
             exit('failed to parse moon version - MultiMoon source code has to change')
         }
     })();
-    console.log(`moon version: ${moon_version}`);
+    console.log(`toolchain version: ${toolchain_version}`);
 
     // access registry: check update
     {
-        console.log(`checking if ${arch}/${moon_version} in MultiMoon registry...`)
+        console.log(`checking if ${arch}/${toolchain_version} in MultiMoon registry...`)
         const req_check_update_pb = CheckUpdateReq.create();
         req_check_update_pb.arch = arch;
-        req_check_update_pb.name = moon_version;
+        req_check_update_pb.name = toolchain_version;
         const rep_check_update = await fetch(registry_check_update_url(), {
             method: 'POST',
             headers: {
@@ -77,10 +77,10 @@ async function main() {
         }
         const rep_check_update_pb = CheckUpdateRep.decode(new Uint8Array(await rep_check_update.arrayBuffer()));
         if (!rep_check_update_pb.shouldUpdate) {
-            console.log(`toolchain ${arch}/${moon_version} is already in MultiMoon registry - no need to update.`)
+            console.log(`toolchain ${arch}/${toolchain_version} is already in MultiMoon registry - no need to update.`)
             return;
         } else {
-            console.log(`toolchain ${arch}/${moon_version} is not in MultiMoon registry.`)
+            console.log(`toolchain ${arch}/${toolchain_version} is not in MultiMoon registry.`)
         }
     }
     
@@ -103,11 +103,12 @@ async function main() {
     const req_update_pb = await (async () => {
         const req = UpdateReq.create();
         req.arch = arch;
-        req.name = moon_version;
+        req.name = toolchain_version;
         req.toolchain = PbToolchain.create();
-        req.toolchain.name = moon_version;
+        req.toolchain.name = toolchain_version;
         req.toolchain.installer = 'initial'
         req.toolchain.lastModified = Math.floor(Date.now() / 1000)
+        req.toolchain.moonver = moon_version_exec;
         
         // binaries: sha256 checksum and xz compression
         for (const filename of upstream_executables(arch)) {

@@ -15,4 +15,5 @@ message Toolchain {
     int64 last_modified = 3;
     repeated File bin = 4;
     repeated File core = 5;
+    string moonver = 6;
 }
