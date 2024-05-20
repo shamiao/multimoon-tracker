@@ -153,13 +153,18 @@ async function main() {
     {
         const rep_fetch = async (attempt: number) => {
             console.log(`uploading ${req_update_pb.arch}/${req_update_pb.name} to registry... (attempt: ${attempt})`)
-            return await fetch(registry_update_url(), {
+            const rep_update = await fetch(registry_update_url(), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/octet-stream',
                 },
                 body: UpdateReq.encode(req_update_pb).finish(),
             });
+            if (rep_update.ok) {
+                return rep_update;
+            } else {
+                throw new Error(`error on registry update: ${rep_update.statusText}`)
+            }
         };
         const rep_update = await pRetry(rep_fetch, {
             onFailedAttempt: error => {
@@ -167,9 +172,6 @@ async function main() {
             },
             retries: 5
         });
-        if (!rep_update.ok) {
-            exit(`error on registry update: ${rep_update.statusText}`);
-        }
         const _rep_update_pb = UpdateRep.decode(new Uint8Array(await rep_update.arrayBuffer()));
         console.log(`sucessfully uploaded ${req_update_pb.arch}/${req_update_pb.name} to registry.`)
     }
