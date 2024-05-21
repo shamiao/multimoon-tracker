@@ -1,13 +1,13 @@
 import * as process from 'node:process';
 import * as crypto from 'node:crypto';
 import { download, exit } from './common';
-import { moon_executable_name, moonc_executable_name, registry_check_update_url, registry_update_url, upstream_core_url, upstream_executable_url, upstream_executables, upstream_script_checksum, upstream_script_url } from './data';
+import { moon_executable_name, moonc_executable_name, registry_check_update_url, registry_update_url, registry_upload_file_url, upstream_core_url, upstream_executable_url, upstream_executables, upstream_script_checksum, upstream_script_url } from './data';
 import * as tmp from 'tmp';
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as child_process from 'node:child_process'
 import { promisify } from 'node:util'
-import { CheckUpdateRep, CheckUpdateReq, UpdateRep, UpdateReq } from './proto/update';
+import { CheckUpdateRep, CheckUpdateReq, UpdateRep, UpdateReq, UploadFileRep, UploadFileReq } from './proto/update';
 import { Toolchain as PbToolchain, File as PbToolchainFile } from './proto/toolchain';
 import pRetry from 'p-retry';
 
@@ -98,18 +98,10 @@ async function main() {
         downloaded_files.push(moonc_executable);
         return new Map(downloaded_files);
     })();
-    
-    // access registry: update
-    const req_update_pb = await (async () => {
-        const req = UpdateReq.create();
-        req.arch = arch;
-        req.name = toolchain_version;
-        req.toolchain = PbToolchain.create();
-        req.toolchain.name = toolchain_version;
-        req.toolchain.installer = 'initial'
-        req.toolchain.lastModified = Math.floor(Date.now() / 1000)
-        req.toolchain.moonver = moon_version_exec;
-        
+
+    // prepare files
+    const [bin_files, bin_files_upload] = await (async () => {
+        const files = [], files_with_content = []
         // binaries: sha256 checksum and xz compression
         for (const filename of upstream_executables(arch)) {
             const file_bytes = downloaded_files.get(filename) || exit('internal error, missing downloaded file' );
@@ -123,14 +115,25 @@ async function main() {
             console.log(`${filename} size: ${file_bytes.byteLength} bytes (${compressed.byteLength} compressed)`)
 
             const downloadfrom_filename = `${filename}.${checksum_in_downloadfrom}.xz`
-
+            
             const file_pb = PbToolchainFile.create();
             file_pb.filename = filename
             file_pb.downloadfrom = downloadfrom_filename
             file_pb.checksum = checksum_in_pb
-            file_pb.uploadContent = new Uint8Array(compressed)
-            req.toolchain.bin.push(file_pb)
+            files.push(file_pb)
+
+            const upload_file_req = UploadFileReq.create();
+            upload_file_req.arch = arch
+            upload_file_req.name = toolchain_version
+            upload_file_req.type = 'bin'
+            upload_file_req.file = PbToolchainFile.fromPartial(file_pb)
+            upload_file_req.file.uploadContent = new Uint8Array(compressed)
+            files_with_content.push(upload_file_req)
         }
+        return [files, files_with_content]
+    })();
+    const [core_files, core_files_upload] = await (async () => {
+        const files = [], files_with_content = []
         // core: sha256 checksum only
         for (const filename of ['core.zip']) {
             const file_bytes = downloaded_files.get(filename) || exit('internal error, missing downloaded file' );
@@ -145,8 +148,64 @@ async function main() {
             file_pb.filename = filename
             file_pb.downloadfrom = downloadfrom_filename
             file_pb.checksum = checksum_in_pb
-            file_pb.uploadContent = file_bytes
-            req.toolchain.core.push(file_pb)
+            files.push(file_pb)
+
+            const upload_file_req = UploadFileReq.create();
+            upload_file_req.arch = arch
+            upload_file_req.name = toolchain_version
+            upload_file_req.type = 'core'
+            upload_file_req.file = PbToolchainFile.fromPartial(file_pb)
+            upload_file_req.file.uploadContent = file_bytes
+            files_with_content.push(upload_file_req)
+        }
+        return [files, files_with_content]
+    })();
+    const all_files_upload_req = ([] as UploadFileReq[]).concat(bin_files_upload).concat(core_files_upload)
+
+    // access registry: upload files
+    for (const req of all_files_upload_req) {
+        const rep_fetch = async (attempt: number) => {
+            console.log(`uploading file ${req.file?.downloadfrom} of ${req.name} ${req.arch} to registry... (attempt: ${attempt})`)
+            const rep_upload_file = await fetch(registry_upload_file_url(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/octet-stream',
+                },
+                body: UploadFileReq.encode(req).finish(),
+            });
+            if (rep_upload_file.ok) {
+                return rep_upload_file;
+            } else {
+                throw new Error(`error on registry update: ${rep_upload_file.statusText}`)
+            }
+        };
+        const rep_update = await pRetry(rep_fetch, {
+            onFailedAttempt: error => {
+                console.log(`attempt ${error.attemptNumber} failed. (${error.retriesLeft} attempts left)`);
+            },
+            retries: 2
+        });
+        const rep = UploadFileRep.decode(new Uint8Array(await rep_update.arrayBuffer()));
+        console.log(`sucessfully uploaded file ${req.file?.downloadfrom} of ${req.name} ${req.arch} to registry. (path: ${rep.path})`)
+
+    }
+    
+    // access registry: update
+    const req_update_pb = await (async () => {
+        const req = UpdateReq.create();
+        req.arch = arch;
+        req.name = toolchain_version;
+        req.toolchain = PbToolchain.create();
+        req.toolchain.name = toolchain_version;
+        req.toolchain.installer = 'initial'
+        req.toolchain.lastModified = Math.floor(Date.now() / 1000)
+        req.toolchain.moonver = moon_version_exec;
+
+        for (const bin_file of bin_files) {
+            req.toolchain.bin.push(bin_file)
+        }
+        for (const core_file of core_files) {
+            req.toolchain.core.push(core_file)
         }
         return req;
     })();

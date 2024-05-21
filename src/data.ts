@@ -79,3 +79,7 @@ export function registry_check_update_url(): string {
 export function registry_update_url(): string {
     return 'http://multimoon.lopt.dev/update'
 }
+
+export function registry_upload_file_url(): string {
+    return 'http://multimoon.lopt.dev/update/upload'
+}

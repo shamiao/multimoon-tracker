@@ -21,3 +21,14 @@ message UpdateReq {
 
 message UpdateRep {
 }
+
+message UploadFileReq {
+    string arch = 1;
+    string name = 2;
+    string type = 3;
+    File file = 4;
+}
+
+message UploadFileRep {
+    string path = 1;
+}
