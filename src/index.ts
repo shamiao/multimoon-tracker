@@ -165,7 +165,9 @@ async function main() {
     // access registry: upload files
     for (const req of all_files_upload_req) {
         const rep_fetch = async (attempt: number) => {
-            console.log(`uploading file ${req.file?.downloadfrom} of ${req.name} ${req.arch} to registry... (attempt: ${attempt})`)
+            console.log(`uploading file ${req.file?.downloadfrom} of ${req.name} ${req.arch} ` +
+                `(${req.file?.uploadContent.byteLength} bytes) to registry... ` +
+                `(attempt: ${attempt})`)
             const rep_upload_file = await fetch(registry_upload_file_url(), {
                 method: 'POST',
                 headers: {
@@ -179,13 +181,13 @@ async function main() {
                 throw new Error(`error on registry update: ${rep_upload_file.statusText}`)
             }
         };
-        const rep_update = await pRetry(rep_fetch, {
+        const rep_upload_file = await pRetry(rep_fetch, {
             onFailedAttempt: error => {
                 console.log(`attempt ${error.attemptNumber} failed. (${error.retriesLeft} attempts left)`);
             },
             retries: 2
         });
-        const rep = UploadFileRep.decode(new Uint8Array(await rep_update.arrayBuffer()));
+        const rep = UploadFileRep.decode(new Uint8Array(await rep_upload_file.arrayBuffer()));
         console.log(`sucessfully uploaded file ${req.file?.downloadfrom} of ${req.name} ${req.arch} to registry. (path: ${rep.path})`)
 
     }
